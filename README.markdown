@@ -43,7 +43,13 @@ example is also given below:
 
     def test_server(environ, start_response):
         config = dict(
-          base  = os.path.join(os.getcwd(), 'test'),
+          base     = os.path.join(os.getcwd(), 'test'),
+	  # url where version info should be served using the json format
+	  # (optional)
+	  json_path = '/downloads.json',
+	  # base URL of the file server
+	  # (only required if json_path is used)
+	  base_url = 'http://localhost:8000',
           paths = [
               ('mac',    # url (relative)
                'mac',    # fs path (relative to base)
