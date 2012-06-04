@@ -26,10 +26,14 @@ import re
 import os
 import os.path
 import sys
-import json
 import urllib
 import wsgiref.util
 from BaseHTTPServer import BaseHTTPRequestHandler
+
+try:
+    import json
+except ImportError:
+    import simplejson as json 
 
 show_entries_re = re.compile('/([0-9]+)')
 
