@@ -26,6 +26,8 @@ import sys
 import os
 import os.path
 import re
+import json
+import urllib
 import wsgiref.util
 from BaseHTTPServer import BaseHTTPRequestHandler
 
@@ -49,9 +51,41 @@ def render_500(environ, start_response, msg=None):
 
     return [BaseHTTPRequestHandler.responses[500][0]]
 
+import urlparse
+
+def generate_download_json(config):
+    data = dict(url = config['base_url'])
+    for c in config['paths']:
+        versions = get_versions(config, c)
+
+        data[c[0]] = [
+                dict(
+                    version=c[3].match(x).group(1),
+                    file=x,
+                    path=urllib.pathname2url(os.path.join(c[0], x)),
+                    url=urlparse.urljoin(config['base_url'], 
+                        urllib.pathname2url(os.path.join(c[0], x)))) 
+                for x in versions]
+
+    return json.dumps(data)
+
+def get_versions(config, path_config):
+    fs_path = os.path.join(config['base'], path_config[1])
+    fs_entries = os.listdir(fs_path)
+    fs_entries = filter(lambda x: path_config[3].match(x), fs_entries)
+    fs_entries.sort(path_config[2])
+
+    return fs_entries
+
 def latestversion_server(environ, start_response):
     path   = environ['PATH_INFO']
     config = environ['latestversion.config']
+
+    if path == '/download.json':
+        status = '200 OK'
+        headers = [('Content-type', 'application/json')]
+        start_response(status, headers)
+        return [generate_download_json(config)]
 
     path_config = None
     for p in config['paths']:
@@ -61,23 +95,20 @@ def latestversion_server(environ, start_response):
     if not path_config:
         return render_404(environ, start_response)
 
-    fs_path = os.path.join(config['base'], path_config[1])
-    fs_entries = os.listdir(fs_path)
-    fs_entries = filter(lambda x: path_config[3].match(x), fs_entries)
-    fs_entries.sort(path_config[2])
+    versions = get_versions(config, path_config)
 
     match = show_entries_re.match(path[len(path_config[0]) + 1:])
     if match:
-        result = '\n'.join(fs_entries[-int(match.group(1)):])
-    elif len(fs_entries) == 0:
+        result = '\n'.join(versions[-int(match.group(1)):])
+    elif len(versions) == 0:
         result = ''
     elif len(path) == len(path_config[0]) + 2 and \
          path[len(path_config[0]) + 1] == '/':
-        result = fs_entries[-1]
+        result = versions[-1]
     elif len(path) > len(path_config[0]) + 1:
         return render_404(environ, start_response)
     else:
-        result = fs_entries[-1]
+        result = versions[-1]
 
     status = '200 OK'
     headers = [('Content-type', 'text/plain')]
@@ -98,16 +129,17 @@ else:
 
     def test_server(environ, start_response):
         config = dict(
-              base  = os.path.join(os.getcwd(), 'test'),
+              base     = os.path.join(os.getcwd(), 'test'),
+              base_url = 'http://localhost:8000',
               paths = [
                   ('mac',
                    'mac',
                    cmp,   
-                   re.compile('Application-mac-[0-9]{8}\.[0-9]{4}\.zip')),
+                   re.compile('Application-mac-([0-9]{8}\.[0-9]{4})\.zip')),
                   ('win',
                    'win',
                    cmp,
-                   re.compile('Application-win-[0-9]{8}\.[0-9]{4}\.zip'))])
+                   re.compile('Application-win-([0-9]{8}\.[0-9]{4})\.zip'))])
         environ['latestversion.config'] = config
         return latestversion_server(environ, start_response)
 
