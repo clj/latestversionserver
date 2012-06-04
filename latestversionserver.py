@@ -22,10 +22,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
+import re
 import os
 import os.path
-import re
+import sys
 import json
 import urllib
 import wsgiref.util
@@ -81,7 +81,7 @@ def latestversion_server(environ, start_response):
     path   = environ['PATH_INFO']
     config = environ['latestversion.config']
 
-    if path == '/download.json':
+    if 'json_path' in config and path == config['json_path']:
         status = '200 OK'
         headers = [('Content-type', 'application/json')]
         start_response(status, headers)
@@ -129,8 +129,9 @@ else:
 
     def test_server(environ, start_response):
         config = dict(
-              base     = os.path.join(os.getcwd(), 'test'),
-              base_url = 'http://localhost:8000',
+              base      = os.path.join(os.getcwd(), 'test'),
+              base_url  = 'http://localhost:8000',
+              json_path = '/downloads.json',
               paths = [
                   ('mac',
                    'mac',
