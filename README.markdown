@@ -35,7 +35,10 @@ server can be seen at the bottom of the `latestversionserver.py` file and more
 help can be found in the [relevant Python documentation][wsgisimple]. An
 example is also given below:
 
+    import os
+    import re
     from wsgiref.simple_server import make_server
+
     from latestversionserver import latestversion_server
 
     def test_server(environ, start_response):
