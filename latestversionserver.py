@@ -34,6 +34,10 @@ try:
     import json
 except ImportError:
     import simplejson as json 
+try:
+    from urlparse import parse_qs
+except ImportError:
+    from cgi import parse_qs
 
 show_entries_re = re.compile('/([0-9]+)')
 
@@ -73,7 +77,7 @@ def generate_download_json(environ, config):
 
     json_data = json.dumps(data)
 
-    args = urlparse.parse_qs(environ['QUERY_STRING'])
+    args = parse_qs(environ['QUERY_STRING'])
     if 'callback' in args:
         return '%s(%s);' % (args['callback'][0], json_data)
     return json_data
