@@ -57,7 +57,7 @@ def render_500(environ, start_response, msg=None):
 
 import urlparse
 
-def generate_download_json(config):
+def generate_download_json(environ, config):
     data = dict(url = config['base_url'])
     for c in config['paths']:
         versions = get_versions(config, c)
@@ -71,7 +71,13 @@ def generate_download_json(config):
                         urllib.pathname2url(os.path.join(c[0], x)))) 
                 for x in versions]
 
-    return json.dumps(data)
+    json_data = json.dumps(data)
+
+    args = urlparse.parse_qs(environ['QUERY_STRING'])
+    if 'callback' in args:
+        return '%s(%s);' % (args['callback'][0], json_data)
+    return json_data
+
 
 def get_versions(config, path_config):
     fs_path = os.path.join(config['base'], path_config[1])
@@ -89,7 +95,7 @@ def latestversion_server(environ, start_response):
         status = '200 OK'
         headers = [('Content-type', 'application/json')]
         start_response(status, headers)
-        return [generate_download_json(config)]
+        return [generate_download_json(environ, config)]
 
     path_config = None
     for p in config['paths']:
